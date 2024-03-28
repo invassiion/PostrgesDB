@@ -2,7 +2,7 @@ spring.application.name=postgres
 spring.datasource.url=jdbc:postgresql://localhost:5432/testdb
 spring.datasource.username=
 spring.datasource.password=
-spring.jpa.properties.hibernate.jdbc.lob.non_contexttual_creation=true
+spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
 
 
 spring.jpa.hibernate.ddl-auto=update
