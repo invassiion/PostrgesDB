@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class PostgresApplicationTests {
+
 @Autowired
 private UserRepository userRepository;
 

@@ -1,17 +1,22 @@
 package com.example.postgres;
 
-import com.example.postgres.user.dto.CreateUserRequest;
+import com.example.postgres.user.dto.RegistrationUserRequest;
 import com.example.postgres.user.dto.EditUserRequest;
 import com.example.postgres.user.dto.UserResponse;
 import com.example.postgres.user.entity.UserEntity;
 import com.example.postgres.user.repository.UserRepository;
 import com.example.postgres.user.routes.UserRoutes;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
@@ -20,9 +25,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import javax.print.attribute.standard.Media;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +43,32 @@ public class WebTests {
     @Autowired
     private UserRepository userRepository;
 
+    @Value("${init.email")
+    private String initUser;
+
+    @Value("${init.password")
+    private String initPassword;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    public void config() {
+        Optional<UserEntity> check = userRepository.findByEmail(initUser);
+        if (check.isPresent()) return;
+
+        UserEntity user = UserEntity.builder()
+                .firstName("")
+                .lastName("")
+                .email(initUser)
+                .password(passwordEncoder.encode(initPassword))
+                .build();
+    }
+
+    public String authHeader() {
+        return "Basic" + Base64.getEncoder().encodeToString((initUser + ":" + initPassword).getBytes());
+    }
+
     @Test
     void contextLoad() throws Exception {
         UserEntity user = UserEntity.builder()
@@ -45,20 +77,22 @@ public class WebTests {
                 .build();
         user = userRepository.save(user);
 
-        mockMvc.perform(get(UserRoutes.BY_ID, user.getId().toString()).contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get(UserRoutes.BY_ID, user.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION,authHeader()))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
 
     @Test
     void createTest() throws Exception {
-        CreateUserRequest request  = CreateUserRequest.builder()
+        RegistrationUserRequest request  = RegistrationUserRequest.builder()
                 .firstName("createTest")
                 .lastName("createTest")
                 .build();
 
         mockMvc.perform(
-               post(UserRoutes.CREATE)
+               post(UserRoutes.REGISTRATION)
                        .contentType(MediaType.APPLICATION_JSON)
                        .content(objectMapper.writeValueAsString(request))
         )
@@ -101,9 +135,10 @@ public class WebTests {
                 .build();
 
 
-        mockMvc.perform(put(UserRoutes.BY_ID,user.getId().toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put(UserRoutes.BY_ID, user.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader()))
                 .andDo(print())
                 .andExpect(content().string(containsString("updateTest")));
     }

@@ -19,5 +19,7 @@ public class UserEntity {
     protected String firstName;
     @Column(name = "last_name")
     protected String lastName;
+    protected  String email;
+    protected String password;
 
 }
